@@ -29,17 +29,17 @@ The LLVM official doc has an instruction at https://llvm.org/docs/CMake.html. Se
 No Clang version is available, but it can be easily created like
 
 ```cmake
-FUNCTION(clang_map_components_to_libnames out_libs)
+FUNCTION(clang_map_components_to_libnames extra_clang_libs)
     FOREACH(l ${CLANG_LIBS})
         FIND_LIBRARY(LIB_${l} NAMES ${l} HINTS ${LLVM_LIBRARY_DIRS} )
         MARK_AS_ADVANCED(LIB_${l})
         LIST(APPEND clang_libs ${LIB_${l}})
     ENDFOREACH(l)
 
-    SET(${out_libs} ${clang_libs} PARENT_SCOPE)
+    SET(${extra_clang_libs} ${clang_libs} PARENT_SCOPE)
 ENDFUNCTION()
 ```
 
 ## Examples
 
-Most examples in this project are based on code pieces in <<Getting Started with LLVM Core Libraries>>.
+Most examples in this project are based on code pieces in *Getting Started with LLVM Core Libraries*.
