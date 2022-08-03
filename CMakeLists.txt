@@ -9,21 +9,33 @@ cmake_path(APPEND CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" "bin") # 
 
 set(CMAKE_TOOLCHAIN_FILE D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake)
 
-# VS specific flags
+# VS specific flags.
 add_compile_options(/sdl) # Enable Additional Security Checks
 add_compile_options(/EHsc) # Enable exceptions
 add_compile_options(/W4) # Warning level
 add_compile_options(/guard:cf) # Enable Control Flow Guard
 
-# Set up LLVM env
+# Get LLVM and Clang
 find_package(LLVM CONFIG REQUIRED)
+find_package(Clang REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+# Use `add_llvm_...` functions.
+include(AddLLVM)
+# Set compiler flags.
 include(HandleLLVMOptions)
+
+include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(${CLANG_INCLUDE_DIRS})
+
 add_definitions(${LLVM_DEFINITIONS})
+add_definitions(${CLANG_DEFINITIONS})
 
-# Find the libraries that correspond to the LLVM components that we wish to use
+# Set up the LLVM and Clang libraries.
 llvm_map_components_to_libnames(llvm_libs Support Core IRReader ExecutionEngine Object OrcJIT native)
-
+SET(clang_libs libclang clangFrontendTool clangFrontend clangDriver clangSerialization clangCodeGen clangParse clangSema clangRewriteFrontend clangRewrite clangAnalysis clangEdit clangAST clangLex clangBasic clangTooling)
 
 add_subdirectory(chapter3)
+add_subdirectory(chapter4-diag)
+add_subdirectory(chapter4-ast)
+add_subdirectory(chapter4-full)

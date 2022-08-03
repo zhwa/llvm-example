@@ -1,4 +1,4 @@
-project(ExperimentCh3)
+project(ch3)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
