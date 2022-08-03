@@ -7,8 +7,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 cmake_path(APPEND CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" "bin") # Use the same output directory for the whole project
 
-set(CMAKE_TOOLCHAIN_FILE D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake)
-
 # VS specific flags.
 add_compile_options(/sdl) # Enable Additional Security Checks
 add_compile_options(/EHsc) # Enable exceptions
