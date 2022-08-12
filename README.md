@@ -44,3 +44,4 @@ ENDFUNCTION()
 
 * LLVMCoreLibExamples: most examples in this folder are based on code pieces in *Getting Started with LLVM Core Libraries*.
 * Kaleidoscope: the official Kaleidoscope examples, except for the MCJIT parts.
+* Others: misc examples, including [SQLGen](https://github.com/mshockwave/SQLGen).
