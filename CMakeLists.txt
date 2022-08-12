@@ -13,6 +13,9 @@ add_compile_options(/EHsc) # Enable exceptions
 add_compile_options(/W4) # Warning level
 add_compile_options(/guard:cf) # Enable Control Flow Guard
 
+# Workaround to use LLVM headers.
+add_compile_definitions(_SILENCE_CXX20_CISO646_REMOVED_WARNING)
+
 # Get LLVM and Clang
 find_package(LLVM CONFIG REQUIRED)
 find_package(Clang REQUIRED)

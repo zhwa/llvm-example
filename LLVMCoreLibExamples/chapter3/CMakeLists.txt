@@ -7,4 +7,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${llvm_libs})
 
 # Copy test case
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/sample_code.cpp $<TARGET_FILE_DIR:${PROJECT_NAME}>)
