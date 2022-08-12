@@ -46,3 +46,6 @@ if (NOT FILECHECK_PATH)
 endif()
 
 add_subdirectory(test)
+
+file(GLOB test_files ${CMAKE_CURRENT_SOURCE_DIR}/test/*.td)
+file(COPY ${test_files} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE})
