@@ -6,3 +6,25 @@ LLVM's official document is also a good reference: https://llvm.org/docs/Writing
 
 Based on an old Q&A at here: https://stackoverflow.com/a/41980033, currently Windows isn't supported. In order to use it on Windows, LLVM itself has to be rebuilt
 with flag ```LLVM_EXPORT_SYMBOLS_FOR_PLUGINS``` set to ```ON```. More discussion can be found at https://discourse.llvm.org/t/how-to-create-pass-independently-on-windows/474/8.
+
+If everything works fine, the experiment can be done with:
+```sh
+clang -flegacy-pass-manager -Xclang -load -Xclang SkeletonPass.dll example.c
+example.exe
+```
+Or for the rtlib example:
+```c
+// rtlib.c
+#include <stdio.h>
+void logop(int i)
+{
+	print("computed: %i\n", i);
+}
+```
+Then
+```sh
+cc -c rtlib.c
+clang -flegacy-pass-manager -Xclang -load -Xclang SkeletonPass.dll -c example.c
+cc example.lib rtlib.lib
+example.exe
+```
