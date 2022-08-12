@@ -41,3 +41,6 @@ add_subdirectory(LLVMCoreLibExamples)
 
 # Official example: Kaleidoscope
 add_subdirectory(Kaleidoscope)
+
+# Other examples
+add_subdirectory(Others)
