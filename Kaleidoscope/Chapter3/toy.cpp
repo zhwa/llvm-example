@@ -562,7 +562,8 @@ static void HandleTopLevelExpression() {
       fprintf(stderr, "\n");
 
       // Remove the anonymous expression.
-      FnIR->eraseFromParent();
+      // ZHWA: the following line would cause heap corruption in runtime. Haven't digged a lot, but this seems to be relevant: https://stackoverflow.com/a/71014587 
+      //FnIR->eraseFromParent();
     }
   } else {
     // Skip token for error recovery.
