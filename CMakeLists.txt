@@ -8,7 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 cmake_path(APPEND CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" "bin") # Use the same output directory for the whole project
 
 # VS specific flags.
-add_compile_options(/sdl) # Enable Additional Security Checks
 add_compile_options(/EHsc) # Enable exceptions
 add_compile_options(/W4) # Warning level
 add_compile_options(/guard:cf) # Enable Control Flow Guard

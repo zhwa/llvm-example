@@ -40,6 +40,15 @@ FUNCTION(clang_map_components_to_libnames extra_clang_libs)
 ENDFUNCTION()
 ```
 
+# Do Not Use /sdl (Enable Additional Security Checks)
+
+The [/sdl option](https://docs.microsoft.com/en-us/cpp/build/reference/sdl-enable-additional-security-checks) would cause LLVM JIT failure. More precisely,
+the following line would crash:
+```cpp
+// Search the JIT for the __anon_expr symbol.
+auto ExprSymbol = ExitOnErr(TheJIT->lookup("__anon_expr"));
+```
+
 ## Examples
 
 * LLVMCoreLibExamples: most examples in this folder are based on code pieces in *Getting Started with LLVM Core Libraries*.
