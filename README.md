@@ -61,3 +61,9 @@ For example, change the linker input from vcpkg libs (vcpkg\packages\llvm_x64-wi
 * LLVMCoreLibExamples: most examples in this folder are based on code pieces in *Getting Started with LLVM Core Libraries*.
 * Kaleidoscope: the official Kaleidoscope examples, except for the MCJIT parts.
 * Others: misc examples, including [SQLGen](https://github.com/mshockwave/SQLGen).
+
+## Misc Notes
+
+The parser in Kaleidoscope project is a [operator precedence parse](https://en.wikipedia.org/wiki/Operator-precedence_parser). It doesn't use the stack based
+[Shunting yard algorithm](https://en.wikipedia.org/wiki/Shunting_yard_algorithm). Rather, it uses a nested while loop to make sure operations with higher precedence
+can be constructed first. Lower precedence operations will only get the result from the innner while loop, after a node is returned from that.

@@ -54,13 +54,6 @@ bool SQLGenMain(raw_ostream& OS, RecordKeeper& Records)
 
 int main(int argc, char** argv)
 {
-    // Add an ugly default for convenient debugging: sqlgen.exe --emit-sql InsertRows.td
-    std::vector<char*> params = {const_cast<char*>("sqlgen.exe"), const_cast<char*>("--emit-sql"), const_cast<char*>("InsertRows.td")};
-    if (argc < 2)
-    {
-        argc = 3;
-        argv = params.data();
-    }
     cl::ParseCommandLineOptions(argc, argv);
     return llvm::TableGenMain(argv[0], &SQLGenMain);
 }
