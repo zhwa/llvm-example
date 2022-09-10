@@ -18,15 +18,20 @@ add_compile_definitions(_SILENCE_CXX20_CISO646_REMOVED_WARNING)
 # Get LLVM and Clang
 find_package(LLVM CONFIG REQUIRED)
 find_package(Clang REQUIRED)
+find_package(MLIR REQUIRED CONFIG)
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
+include(TableGen)
 # Use `add_llvm_...` functions.
 include(AddLLVM)
+include(AddMLIR)
 # Set compiler flags.
 include(HandleLLVMOptions)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${CLANG_INCLUDE_DIRS})
+include_directories(${MLIR_INCLUDE_DIRS})
 
 add_definitions(${LLVM_DEFINITIONS})
 add_definitions(${CLANG_DEFINITIONS})
@@ -40,6 +45,9 @@ add_subdirectory(LLVMCoreLibExamples)
 
 # Official example: Kaleidoscope
 add_subdirectory(Kaleidoscope)
+
+# Official example: toy
+add_subdirectory(toy)
 
 # Other examples
 add_subdirectory(Others)
