@@ -1,31 +1,28 @@
-# For a better template to copy, see examples/standalone
+project(toyc-ch3)
+
 include_directories(include)
 add_subdirectory(include)
-
-set(LLVM_LINK_COMPONENTS
-  Support
-  )
 
 set(LLVM_TARGET_DEFINITIONS mlir/ToyCombine.td)
 mlir_tablegen(ToyCombine.inc -gen-rewriters)
 add_public_tablegen_target(ToyCh3CombineIncGen)
 
-add_toy_chapter(toyc-ch3
+add_executable(${PROJECT_NAME}
   toyc.cpp
   parser/AST.cpp
   mlir/MLIRGen.cpp
   mlir/Dialect.cpp
-  mlir/ToyCombine.cpp
+  mlir/ToyCombine.cpp)
 
-  DEPENDS
-  ToyCh3OpsIncGen
-  ToyCh3CombineIncGen
-  )
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/parser
+    ${CMAKE_CURRENT_SOURCE_DIR}/mlir)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/)
-target_link_libraries(toyc-ch3
-  PRIVATE
+target_link_libraries(${PROJECT_NAME} PRIVATE
     MLIRAnalysis
     MLIRIR
     MLIRParser
@@ -33,3 +30,4 @@ target_link_libraries(toyc-ch3
     MLIRSideEffectInterfaces
     MLIRTransforms)
 
+add_dependencies(${PROJECT_NAME} ToyCh3OpsIncGen ToyCh3CombineIncGen)
