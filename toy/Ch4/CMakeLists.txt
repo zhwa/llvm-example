@@ -24,6 +24,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/mlir)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${llvm_libs}
     MLIRAnalysis
     MLIRCastInterfaces
     MLIRCallInterfaces

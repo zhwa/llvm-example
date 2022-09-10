@@ -37,7 +37,7 @@ add_definitions(${LLVM_DEFINITIONS})
 add_definitions(${CLANG_DEFINITIONS})
 
 # Set up the LLVM and Clang libraries.
-llvm_map_components_to_libnames(llvm_libs Analysis Support Core IRReader ExecutionEngine Object OrcJIT native InstCombine RuntimeDyld ScalarOpts)
+llvm_map_components_to_libnames(llvm_libs Analysis Support Core IRReader ExecutionEngine Object OrcJIT native nativecodegen InstCombine RuntimeDyld ScalarOpts)
 SET(clang_libs libclang clangFrontendTool clangFrontend clangDriver clangSerialization clangCodeGen clangParse clangSema clangRewriteFrontend clangRewrite clangAnalysis clangEdit clangAST clangLex clangBasic clangTooling)
 
 # Examples from <<Getting Started with LLVM Core Libraries>>
