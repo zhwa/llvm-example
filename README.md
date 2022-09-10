@@ -64,6 +64,6 @@ For example, change the linker input from vcpkg libs (vcpkg\packages\llvm_x64-wi
 
 ## Misc Notes
 
-The parser in Kaleidoscope project is a [operator precedence parse](https://en.wikipedia.org/wiki/Operator-precedence_parser). It doesn't use the stack based
+The parser in Kaleidoscope project is a [operator precedence parser](https://en.wikipedia.org/wiki/Operator-precedence_parser). It doesn't use the stack based
 [Shunting yard algorithm](https://en.wikipedia.org/wiki/Shunting_yard_algorithm). Rather, it uses a nested while loop to make sure operations with higher precedence
 can be constructed first. Lower precedence operations will only get the result from the innner while loop, after a node is returned from that.
