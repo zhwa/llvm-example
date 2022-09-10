@@ -44,7 +44,7 @@ target_link_libraries(toyc-ch7
     MLIRIR
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-    MLIRMemRefDialect
+    MLIRMemRef
     MLIRParser
     MLIRPass
     MLIRSideEffectInterfaces

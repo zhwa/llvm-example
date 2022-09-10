@@ -23,7 +23,7 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/InitAllDialects.h"
-#include "mlir/Parser/Parser.h"
+#include "mlir/Parser.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -119,7 +119,7 @@ int loadMLIR(mlir::MLIRContext &context,
   // Parse the input mlir.
   llvm::SourceMgr sourceMgr;
   sourceMgr.AddNewSourceBuffer(std::move(*fileOrErr), llvm::SMLoc());
-  module = mlir::parseSourceFile<mlir::ModuleOp>(sourceMgr, &context);
+  module = mlir::parseSourceFile(sourceMgr, &context);
   if (!module) {
     llvm::errs() << "Error can't load file " << inputFilename << "\n";
     return 3;
@@ -146,7 +146,7 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
 
     // Now that there is only one function, we can infer the shapes of each of
     // the operations.
-    mlir::OpPassManager &optPM = pm.nest<mlir::toy::FuncOp>();
+    mlir::OpPassManager &optPM = pm.nest<mlir::FuncOp>();
     optPM.addPass(mlir::createCanonicalizerPass());
     optPM.addPass(mlir::toy::createShapeInferencePass());
     optPM.addPass(mlir::createCanonicalizerPass());
@@ -154,11 +154,10 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
   }
 
   if (isLoweringToAffine) {
-    // Partially lower the toy dialect.
-    pm.addPass(mlir::toy::createLowerToAffinePass());
+    mlir::OpPassManager &optPM = pm.nest<mlir::FuncOp>();
 
-    // Add a few cleanups post lowering.
-    mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
+    // Partially lower the toy dialect with a few cleanups afterwards.
+    optPM.addPass(mlir::toy::createLowerToAffinePass());
     optPM.addPass(mlir::createCanonicalizerPass());
     optPM.addPass(mlir::createCSEPass());
 
@@ -238,9 +237,8 @@ int runJit(mlir::ModuleOp module) {
 
   // Create an MLIR execution engine. The execution engine eagerly JIT-compiles
   // the module.
-  mlir::ExecutionEngineOptions engineOptions;
-  engineOptions.transformer = optPipeline;
-  auto maybeEngine = mlir::ExecutionEngine::create(module, engineOptions);
+  auto maybeEngine = mlir::ExecutionEngine::create(
+      module, /*llvmModuleBuilder=*/nullptr, optPipeline);
   assert(maybeEngine && "failed to construct an execution engine");
   auto &engine = maybeEngine.get();
 

@@ -60,8 +60,7 @@ private:
 } // namespace
 
 /// Return a formatted string for the location of any node
-template <typename T>
-static std::string loc(T *node) {
+template <typename T> static std::string loc(T *node) {
   const auto &loc = node->loc();
   return (llvm::Twine("@") + *loc.file + ":" + llvm::Twine(loc.line) + ":" +
           llvm::Twine(loc.col))
@@ -155,7 +154,7 @@ void ASTDumper::dump(VariableExprAST *node) {
 void ASTDumper::dump(ReturnExprAST *node) {
   INDENT();
   llvm::errs() << "Return\n";
-  if (node->getExpr().has_value())
+  if (node->getExpr().hasValue())
     return dump(*node->getExpr());
   {
     INDENT();

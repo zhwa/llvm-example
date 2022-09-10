@@ -1,26 +1,27 @@
-# For a better template to copy, see examples/standalone
+project(toyc-ch2)
+
 add_subdirectory(include)
 
-set(LLVM_LINK_COMPONENTS
-  Support
-  )
-
-add_toy_chapter(toyc-ch2
+add_executable(${PROJECT_NAME}
   toyc.cpp
   parser/AST.cpp
   mlir/MLIRGen.cpp
-  mlir/Dialect.cpp
+  mlir/Dialect.cpp)
 
-  DEPENDS
-  ToyCh2OpsIncGen
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/parser
+    ${CMAKE_CURRENT_SOURCE_DIR}/mlir)
 
-  )
-include_directories(include/)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/)
-target_link_libraries(toyc-ch2
-  PRIVATE
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${llvm_libs}
     MLIRAnalysis
     MLIRIR
     MLIRParser
     MLIRSideEffectInterfaces
     MLIRTransforms)
+
+add_dependencies(${PROJECT_NAME} ToyCh2OpsIncGen)

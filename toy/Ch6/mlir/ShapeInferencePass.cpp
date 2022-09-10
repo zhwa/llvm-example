@@ -44,10 +44,9 @@ namespace {
 ///     d) infer the shape of its output from the argument types.
 ///   3) If the worklist is empty, the algorithm succeeded.
 ///
-struct ShapeInferencePass
-    : public mlir::PassWrapper<ShapeInferencePass, OperationPass<toy::FuncOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ShapeInferencePass)
-
+class ShapeInferencePass
+    : public mlir::PassWrapper<ShapeInferencePass, OperationPass<FuncOp>> {
+public:
   void runOnOperation() override {
     auto f = getOperation();
 
