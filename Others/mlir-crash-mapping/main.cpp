@@ -14,12 +14,15 @@ int main()
     mlir::Location loc = builder.getUnknownLoc();
 
     mlir::Value intOperand = builder.create<mlir::arith::ConstantOp>(loc, builder.getI64IntegerAttr(57));
-    auto testOp = builder.create<mlir::test::TestOp>(loc, intOperand.getType(), intOperand);
     auto floatValue = builder.create<mlir::arith::ConstantOp>(loc, builder.getF64FloatAttr(57));
 
     mlir::BlockAndValueMapping mapping;
     mapping.map(intOperand, floatValue);
+    mapping.lookup(intOperand).dump();
 
+    auto testOp = builder.create<mlir::test::TestOp>(loc, intOperand.getType(), intOperand);
+    auto tp = testOp.typedOperand();
+    tp.dump();
     mapping.lookup(testOp.typedOperand()).dump();
 
     return 0;
