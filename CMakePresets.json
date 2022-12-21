@@ -1,26 +1,53 @@
 {
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "x64-release",
-            "displayName": "x64 Release",
-            "description": "Experimental project, only release mode is provided",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "installDir": "${sourceDir}/out/install/${presetName}",
-            "generator": "Visual Studio 17 2022",
-            "vendor": {
-              "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                "hostOS": [ "Windows" ]
-              }
-            },
-          "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-            "CMAKE_TOOLCHAIN_FILE": "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
-          },
-            "architecture": {
-              "value": "x64",
-              "strategy": "set"
-            }
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "description": "Experimental project, only x64 arch is supported.",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "generator": "Visual Studio 17 2022",
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Windows" ]
         }
-    ]
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    },
+    {
+      "name": "x64-release",
+      "displayName": "x64 Release",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "x64-debug",
+      "displayName": "x64 Debug",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-release",
+      "configurePreset": "x64-release",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "x64-debug",
+      "configurePreset": "x64-debug",
+      "configuration": "Debug"
+    }
+  ]
 }
