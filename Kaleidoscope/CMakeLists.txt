@@ -3,7 +3,6 @@ set_target_properties(Kaleidoscope PROPERTIES FOLDER Examples)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_subdirectory(BuildingAJIT)
 add_subdirectory(Chapter2)
 add_subdirectory(Chapter3)
 add_subdirectory(Chapter4)

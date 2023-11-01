@@ -1,1 +1,0 @@
-This project is copied from https://github.com/mscuttari/mlir-crash-mapping, with minimum changes in order to build it.

@@ -11,7 +11,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${llvm_libs}
     ${dialect_libs}
     ${conversion_libs}
-    MLIRTest
     MLIRAnalysis
     MLIRCallInterfaces
     MLIRCastInterfaces
@@ -19,7 +18,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     MLIRIR
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-    MLIRMemRef
     MLIRParser
     MLIRPass
     MLIRSideEffectInterfaces

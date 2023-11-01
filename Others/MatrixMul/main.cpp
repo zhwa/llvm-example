@@ -1,59 +1,51 @@
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/InitAllDialects.h"
 
 using namespace mlir;
 using namespace mlir::linalg;
+using namespace mlir::arith;
 
 int main() {
     // Define the MLIR context.
-    MLIRContext context;
+    DialectRegistry registry;
+    registry.insert<arith::ArithDialect>();
+    registry.insert<linalg::LinalgDialect>();
 
+    MLIRContext context(registry);
+
+    context.loadDialect<arith::ArithDialect>();
+    context.loadDialect<linalg::LinalgDialect>();
     context.allowUnregisteredDialects(true);
     context.printOpOnDiagnostic(true);
 
 
-    /*
     // Define the input matrices.
-    DenseElementsAttr lhs = DenseElementsAttr::get(
-        RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)),
-        ArrayRef<int32_t>{1, 2, 3, 4});
-    DenseElementsAttr rhs = DenseElementsAttr::get(
-        RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)),
-        ArrayRef<int32_t>{5, 6, 7, 8});
+    DenseElementsAttr lhs = DenseElementsAttr::get(RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)), ArrayRef<int32_t>{1, 2, 3, 4}); 
+    DenseElementsAttr rhs = DenseElementsAttr::get(RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)), ArrayRef<int32_t>{5, 6, 7, 8});
 
     // Define the output matrix.
-    RankedTensorType resultType =
-        RankedTensorType::get({2, 2}, IntegerType::get(&context, 32));
+    RankedTensorType resultType = RankedTensorType::get({2, 2}, IntegerType::get(&context, 32));
     DenseElementsAttr result = DenseElementsAttr::get(resultType, 0);
 
     // Define the 'linalg.matmul' operation.
     OpBuilder builder(&context);
-    auto matmulOp = builder.create<linalg::MatmulOp>(UnknownLoc::get(&context), ValueRange{lhs, rhs}, ValueRange{result});
 
-    // Print the IR.
-    matmulOp.print(llvm::outs());
-    */
+    auto lhsOp = builder.create<ConstantOp>(UnknownLoc::get(&context), RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)), lhs);
+    auto rhsOp = builder.create<ConstantOp>(UnknownLoc::get(&context), RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)), rhs);
+    auto resultOp = builder.create<ConstantOp>(UnknownLoc::get(&context), RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)), result);
 
-    // Define the input matrix.
-    DenseElementsAttr input = DenseElementsAttr::get(
-        RankedTensorType::get({2, 2}, IntegerType::get(&context, 32)),
-        ArrayRef<int32_t>{1, 2, 3, 4});
+    auto matmulOp = builder.create<linalg::MatmulOp>(UnknownLoc::get(&context), ValueRange{lhsOp, rhsOp}, ValueRange{resultOp});
 
-    // Define the 'linalg.matmul' operation.
-    OpBuilder builder(&context);
-    auto constantOp = builder.create<ConstantOp>(
-        /*location=*/UnknownLoc::get(&context),
-        /*resultType=*/RankedTensorType::get({2, 2},
-            IntegerType::get(&context, 32)),
-        /*value=*/input);
-
-    // Get the output value.
-    Value output = constantOp.getResult();
-
-    // Print the IR.
-    output.print(llvm::outs());
+    // Get the output value and print IR.
+    Value lhsOutput = lhsOp.getResult();
+    Value rhsOutput = rhsOp.getResult();
+    Value matmulOutput = matmulOp.getResult(0);
+    lhsOutput.print(llvm::outs());
+    rhsOutput.print(llvm::outs());
+    matmulOutput.print(llvm::outs());
 
     return 0;
 }
