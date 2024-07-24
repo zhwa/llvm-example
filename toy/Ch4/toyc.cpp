@@ -10,11 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/IR/Diagnostics.h"
-#include "mlir/Support/LogicalResult.h"
-#include "toy/AST.h"
 #include "toy/Dialect.h"
-#include "toy/Lexer.h"
 #include "toy/MLIRGen.h"
 #include "toy/Parser.h"
 #include "toy/Passes.h"
@@ -24,6 +20,7 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -33,10 +30,6 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-#include <memory>
-#include <string>
-#include <system_error>
-#include <utility>
 
 using namespace toy;
 namespace cl = llvm::cl;
