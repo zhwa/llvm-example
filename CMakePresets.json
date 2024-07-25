@@ -13,9 +13,6 @@
           "hostOS": [ "Windows" ]
         }
       },
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      },
       "architecture": {
         "value": "x64",
         "strategy": "set"

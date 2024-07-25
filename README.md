@@ -6,7 +6,10 @@ In this project, vcpkg is assumed to be present at D:/tools/vcpkg. Update [CMake
 
 ## Set Up LLVM
 
-Install LLVM, Clang and MLIR with:
+LLVM is built with vcpkg, based on the instruction from [Azure SDK for CPP](https://github.com/Azure/azure-sdk-for-cpp). The [CMake file](./cmake-modules/AzureVcpkg.cmake) is directly copied from there.
+
+It will take a long time for vcpkg to build LLVM in the first run. If this isn't desired, an alternative approach could be preinstalling vcpkg.
+For example, put vcpkg in D:\tools\vcpkg, and run:
 
 ```sh
 vcpkg install llvm[mlir] --triplet=x64-windows

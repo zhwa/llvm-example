@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
+
+# Prepare vcpkg
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules")
+include(AzureVcpkg)
+az_vcpkg_integrate()
+
 project(llvm-example)
 
 set(USE_FOLDERS ON)
