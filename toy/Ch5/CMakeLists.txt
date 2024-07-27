@@ -19,6 +19,7 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/parser
@@ -32,6 +33,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     MLIRAnalysis
     MLIRCallInterfaces
     MLIRCastInterfaces
+    MLIRFuncAllExtensions
     MLIRIR
     MLIRParser
     MLIRPass
