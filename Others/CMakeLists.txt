@@ -1,2 +1,2 @@
 add_subdirectory(llvm-pass-skeleton)
-add_subdirectory(MatrixMul)
+add_subdirectory(LinalgGEMM)
