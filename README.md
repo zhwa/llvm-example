@@ -112,30 +112,18 @@ Understanding the "why" of MLIR before diving into code.
 
 ### Setup
 
-1. **Install vcpkg** (if not already installed):
-   ```powershell
-   git clone https://github.com/Microsoft/vcpkg.git D:\tools\vcpkg
-   cd D:\tools\vcpkg
-   .\bootstrap-vcpkg.bat
-   ```
-
-2. **Clone this repository**:
+1. **Clone this repository**:
    ```powershell
    git clone https://github.com/zhwa/llvm-example.git
    cd llvm-example
    ```
 
-3. **Install LLVM with MLIR**:
+2. **Configure and build**:
    ```powershell
-   vcpkg install llvm[mlir] --triplet=x64-windows
+   cmake --preset x64-debug
+   cmake --build --preset x64-debug
    ```
    ⚠️ **Note**: This takes 1-2 hours on first run!
-
-4. **Configure and build**:
-   ```powershell
-   cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-   cmake --build build --config Release
-   ```
 
 ### Run Examples
 
@@ -145,9 +133,6 @@ Understanding the "why" of MLIR before diving into code.
 
 # Linalg GEMM example
 .\build\bin\linalg-gemm-example.exe
-
-# Kaleidoscope (LLVM tutorial)
-.\build\bin\toyc-ch2.exe
 ```
 
 ---
@@ -230,15 +215,6 @@ llvm-example/
 
 This project uses **vcpkg** for dependency management and **CMake** for building.
 
-### CMake Configuration
-
-```cmake
-# Key CMake variables (from CMakeLists.txt)
-CMAKE_CXX_STANDARD=20              # C++20 required
-LLVM_DIR                           # Found via vcpkg
-MLIR_DIR                           # Found via vcpkg
-```
-
 ### vcpkg Integration
 
 The project automatically integrates vcpkg through `cmake-modules/AzureVcpkg.cmake` (borrowed from Azure SDK).
@@ -281,12 +257,6 @@ cmake --build build
 - **Subsequent builds**: Minutes
 - **Incremental builds**: Seconds
 
-### Common Issues
-
-1. **vcpkg path**: Update `CMakePresets.json` if vcpkg is not in `D:/tools/vcpkg`
-2. **Long paths**: Enable long path support on Windows
-3. **Disk space**: LLVM requires ~20GB
-
 ---
 
 ## 🤝 Contributing
@@ -306,12 +276,6 @@ This is an educational resource. Contributions welcome:
 - [MLIR Website](https://mlir.llvm.org/)
 - [MLIR Documentation](https://mlir.llvm.org/docs/)
 - [LLVM Discourse (MLIR Category)](https://discourse.llvm.org/c/mlir/)
-
----
-
-## 📄 License
-
-This project is licensed under the Apache License 2.0 with LLVM Exceptions - see the [LICENSE](LICENSE) file for details.
 
 ---
 
