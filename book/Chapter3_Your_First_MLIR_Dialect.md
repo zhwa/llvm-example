@@ -756,7 +756,313 @@ The `#include "toy/Ops.cpp.inc"` brings in all the generated operation definitio
 
 ---
 
-## 3.8 From AST to MLIR: MLIRGen
+## 3.8 Understanding Builders and Code Generation
+
+Let's dive deeper into what TableGen generates vs what you write yourself, and clarify the role of builders.
+
+### The Three Layers of Operation Creation
+
+When you define an operation in TableGen, there are three layers to understand:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 1: TableGen Definition (.td file)                     │
+│ → What: High-level declaration (like a .h header)           │
+│ → Who writes it: You                                        │
+│ → Purpose: Describe the operation's structure               │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 2: Generated C++ Code (.inc files)                    │
+│ → What: Operation class implementation                       │
+│ → Who writes it: mlir-tblgen (automatic)                    │
+│ → Purpose: Boilerplate accessors, builders, verification    │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 3: Lowering/Transformation Logic (.cpp files)         │
+│ → What: How to transform or execute the operation           │
+│ → Who writes it: You                                        │
+│ → Purpose: Define semantics and behavior                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### What Does a Builder Do?
+
+**A builder is a convenience constructor** for creating operations. Think of it as syntactic sugar that makes your C++ code cleaner.
+
+#### Without Custom Builders
+
+Every operation automatically gets a **default builder** that takes all inputs explicitly:
+
+```cpp
+// Default builder signature (auto-generated):
+static void build(OpBuilder &builder, OperationState &state,
+                  Type resultType,         // Result type
+                  Value operand1,          // First operand
+                  Value operand2);         // Second operand
+
+// Usage (verbose):
+Type resultType = lhs.getType();
+builder.create<AddOp>(loc, resultType, lhs, rhs);
+```
+
+#### With Custom Builders
+
+You can add custom builders to make common usage patterns easier:
+
+```tablegen
+def AddOp : Toy_Op<"add"> {
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+  let results = (outs F64Tensor);
+  
+  // Custom builder that infers result type from lhs
+  let builders = [
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+  ];
+}
+```
+
+**Generated code:**
+```cpp
+// Custom builder (generated from TableGen)
+static void build(OpBuilder &builder, OperationState &state,
+                  Value lhs, Value rhs) {
+  // Automatically infer result type from lhs
+  state.addTypes(lhs.getType());
+  state.addOperands({lhs, rhs});
+}
+
+// Usage (clean):
+builder.create<AddOp>(loc, lhs, rhs);  // Much simpler!
+```
+
+### Real Example: ConstantOp Builders
+
+The `ConstantOp` has **two builders** for different use cases:
+
+```tablegen
+def ConstantOp : Toy_Op<"constant", [Pure]> {
+  let arguments = (ins F64ElementsAttr:$value);
+  let results = (outs F64Tensor);
+  
+  let builders = [
+    // Builder 1: For creating constants from dense arrays
+    OpBuilder<(ins "DenseElementsAttr":$value), [{
+      build($_builder, $_state, value.getType(), value);
+    }]>,
+    
+    // Builder 2: For creating scalar constants from double
+    OpBuilder<(ins "double":$value)>
+  ];
+}
+```
+
+**How they're used in MLIRGen.cpp:**
+
+```cpp
+// Builder 1: Creating a tensor constant
+mlir::Value mlirGen(LiteralExprAST &lit) {
+  auto dataAttribute = DenseElementsAttr::get(dataType, data);
+  // Uses builder 1: (DenseElementsAttr)
+  return builder.create<ConstantOp>(loc(lit.loc()), type, dataAttribute);
+}
+
+// Builder 2: Creating a scalar constant  
+mlir::Value mlirGen(NumberExprAST &num) {
+  // Uses builder 2: (double)
+  return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
+}
+```
+
+**Same operation, two convenient creation methods!**
+
+### Do You Need Custom Builders?
+
+**No, they're optional!** Let's see an operation without custom builders:
+
+```tablegen
+def PrintOp : Toy_Op<"print"> {
+  let summary = "print operation";
+  let arguments = (ins F64Tensor:$input);
+  // NO custom builders defined!
+}
+```
+
+This still works perfectly:
+
+```cpp
+// Uses the auto-generated default builder
+builder.create<PrintOp>(loc, input);
+```
+
+TableGen automatically generates a builder that takes the operands.
+
+### When to Add Custom Builders
+
+Add custom builders when you want:
+
+1. **Type Inference**: Automatically deduce result types
+   ```tablegen
+   let builders = [
+     OpBuilder<(ins "Value":$input)>  // Infer result from input
+   ];
+   ```
+
+2. **Multiple Input Formats**: Different ways to construct the same operation
+   ```tablegen
+   let builders = [
+     OpBuilder<(ins "DenseElementsAttr":$value)>,  // From attribute
+     OpBuilder<(ins "double":$value)>               // From scalar
+   ];
+   ```
+
+3. **Default Arguments**: Provide sensible defaults
+   ```tablegen
+   let builders = [
+     OpBuilder<(ins "Value":$input,
+                    CArg<"bool", "false">:$transpose)>
+   ];
+   ```
+
+4. **Convenience**: Simplify common patterns
+   ```tablegen
+   let builders = [
+     // Complex setup hidden in builder body
+     OpBuilder<(ins "ArrayRef<int64_t>":$shape), [{
+       auto type = RankedTensorType::get(shape, builder.getF64Type());
+       build($_builder, $_state, type);
+     }]>
+   ];
+   ```
+
+### The Complete Picture: What Generates What
+
+Let's trace through the complete build process for `AddOp`:
+
+**Step 1: You write TableGen** (`Ops.td`):
+```tablegen
+def AddOp : Toy_Op<"add"> {
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+  let results = (outs F64Tensor);
+  let builders = [
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+  ];
+}
+```
+
+**Step 2: Build system runs mlir-tblgen** (during CMake build):
+```cmake
+mlir_tablegen(Ops.h.inc -gen-op-decls)      # Generate declarations
+mlir_tablegen(Ops.cpp.inc -gen-op-defs)     # Generate implementations
+```
+
+**Step 3: Generated `Ops.h.inc`** (simplified):
+```cpp
+class AddOp : public Op<AddOp, ...> {
+public:
+  // Operation name
+  static constexpr ::llvm::StringLiteral getOperationName() {
+    return ::llvm::StringLiteral("toy.add");
+  }
+  
+  // Accessor methods for operands
+  Value getLhs() { return getOperand(0); }
+  Value getRhs() { return getOperand(1); }
+  
+  // Accessor for result
+  Value getResult() { return getOperation()->getResult(0); }
+  
+  // Builder declarations
+  static void build(OpBuilder &odsBuilder, OperationState &odsState,
+                    Value lhs, Value rhs);
+  
+  // Parser and printer
+  static ParseResult parse(OpAsmParser &parser, OperationState &result);
+  void print(OpAsmPrinter &p);
+  
+  // Verification
+  LogicalResult verify();
+};
+```
+
+**Step 4: Generated `Ops.cpp.inc`** (simplified):
+```cpp
+// Custom builder implementation
+void AddOp::build(OpBuilder &odsBuilder, OperationState &odsState,
+                  Value lhs, Value rhs) {
+  odsState.addOperands({lhs, rhs});
+  odsState.addTypes({lhs.getType()});  // Infer result type
+}
+
+// Verification implementation
+LogicalResult AddOp::verify() {
+  // Check that operands and results have compatible types
+  if (getLhs().getType() != getRhs().getType())
+    return emitOpError("operand types must match");
+  // ... more checks ...
+  return success();
+}
+
+// ... parser and printer implementations ...
+```
+
+**Step 5: Your hand-written code** (`Dialect.cpp`, `LowerToAffineLoops.cpp`, etc.):
+```cpp
+// Using the operation in MLIRGen
+Value result = builder.create<AddOp>(loc, lhs, rhs);
+
+// Lowering the operation (YOU write this)
+struct AddOpLowering : public OpRewritePattern<AddOp> {
+  LogicalResult matchAndRewrite(AddOp op,
+                                PatternRewriter &rewriter) const final {
+    // Convert toy.add to affine.for loops with arith.addf
+    // THIS is where the actual computation logic goes!
+    // ...
+    return success();
+  }
+};
+```
+
+### Key Insight: TableGen vs Behavior
+
+**TableGen defines STRUCTURE, not BEHAVIOR:**
+
+| What | Where | Who Writes It |
+|------|-------|---------------|
+| **Operation declaration** | `Ops.td` | You (TableGen) |
+| **Generated accessors** | `Ops.cpp.inc` | mlir-tblgen (automatic) |
+| **Generated builders** | `Ops.cpp.inc` | mlir-tblgen (automatic) |
+| **Lowering logic** | `LowerToAffineLoops.cpp` | **You (C++ code!)** |
+| **Optimization patterns** | `ToyCombine.cpp` | **You (C++ code!)** |
+| **Execution semantics** | Eventually LLVM IR | Through lowering passes |
+
+**The operation at MLIR IR level is just a data structure**. It doesn't "do" anything until you:
+1. Lower it to executable operations
+2. Generate LLVM IR
+3. JIT compile and run
+
+For `ConstantOp`, the "computation" is trivial—it just represents constant data. But for `AddOp`, the actual addition happens much later during lowering (Chapter 6) when you write code like:
+
+```cpp
+// This is where the actual "add" happens - YOU write this!
+Value sum = rewriter.create<arith::AddFOp>(loc, elementA, elementB);
+```
+
+### Summary
+
+- ✅ **Builders are optional convenience constructors**
+- ✅ **Every operation gets a default builder automatically**
+- ✅ **Custom builders make common patterns easier**
+- ✅ **TableGen generates structure (classes, accessors, builders)**
+- ✅ **You write behavior (lowering, optimization, semantics)**
+- ✅ **Operations are data structures until lowered to executable code**
+
+With this understanding, you can now read any `.td` file and understand what code it generates and what code you still need to write!
+
+---
+
+## 3.9 From AST to MLIR: MLIRGen
 
 Now that we've defined operations in TableGen, let's see how to create them from the AST.
 
@@ -981,7 +1287,7 @@ mlir::Value mlirGen(VariableExprAST &expr) {
 
 ---
 
-## 3.9 Complete Example: Toy to MLIR
+## 3.10 Complete Example: Toy to MLIR
 
 Let's trace through a complete transformation.
 
@@ -1066,7 +1372,7 @@ Unlike the AST, MLIR makes all types visible: `tensor<2x3xf64>`.
 
 ---
 
-## 3.10 Building and Running Chapter 2
+## 3.11 Building and Running Chapter 2
 
 Time to see this in action!
 
@@ -1146,7 +1452,7 @@ MLIR is:
 
 ---
 
-## 3.11 Why MLIR Is Better Than AST
+## 3.12 Why MLIR Is Better Than AST
 
 Let's revisit the problems from Chapter 2 and see how MLIR solves them.
 
