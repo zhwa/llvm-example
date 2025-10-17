@@ -774,7 +774,7 @@ When you define an operation in TableGen, there are three layers to understand:
                          ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Layer 2: Generated C++ Code (.inc files)                    │
-│ → What: Operation class implementation                       │
+│ → What: Operation class implementation                      │
 │ → Who writes it: mlir-tblgen (automatic)                    │
 │ → Purpose: Boilerplate accessors, builders, verification    │
 └─────────────────────────────────────────────────────────────┘
@@ -1062,9 +1062,335 @@ With this understanding, you can now read any `.td` file and understand what cod
 
 ---
 
-## 3.9 From AST to MLIR: MLIRGen
+## 3.9 MLIR File Organization: The Standard Pattern
 
-Now that we've defined operations in TableGen, let's see how to create them from the AST.
+Before we dive into using operations, let's understand the **standard file organization** for MLIR dialects. This is important because you'll see this pattern everywhere in MLIR code.
+
+### The Three-File Pattern
+
+Every MLIR dialect typically follows this structure:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Ops.td (TableGen)                                            │
+│    → DECLARE operations                                         │
+│    → Define structure, types, traits                            │
+│    → "Here's WHAT operations exist"                             │
+└───────────────────────┬─────────────────────────────────────────┘
+                        ↓ mlir-tblgen generates
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. Ops.h.inc + Ops.cpp.inc (Generated)                          │
+│    → Operation class skeletons                                  │
+│    → Default accessors                                          │
+│    → Declaration stubs for custom methods                       │
+└───────────────────────┬─────────────────────────────────────────┘
+                        ↓ you implement
+┌─────────────────────────────────────────────────────────────────┐
+│ 3. Dialect.cpp (Hand-Written)                                   │
+│    → IMPLEMENT custom builders                                  │
+│    → IMPLEMENT parsers/printers                                 │
+│    → IMPLEMENT verifiers                                        │
+│    → Register dialect and operations                            │
+│    → "Here's HOW operations work"                               │
+└─────────────────────────┬───────────────────────────────────────┘
+                        ↓ used by
+┌─────────────────────────────────────────────────────────────────┐
+│ 4. MLIRGen.cpp (Hand-Written)                                   │
+│    → USE builder.create<Op>()                                   │
+│    → Convert source language → MLIR                             │
+│    → "Here's how to CREATE operations"                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### In the Toy Tutorial
+
+Let's look at the actual file structure for Chapter 2:
+
+```
+toy/Ch2/
+├── include/toy/
+│   ├── Ops.td              # TableGen definitions
+│   ├── Dialect.h           # Dialect header
+│   └── MLIRGen.h           # MLIRGen interface
+│
+└── mlir/
+    ├── Dialect.cpp         # Operation implementations
+    └── MLIRGen.cpp         # AST-to-MLIR conversion
+```
+
+### What Goes in Each File?
+
+#### **`Ops.td`** - Define the Contract
+
+```tablegen
+def ConstantOp : Toy_Op<"constant", [Pure]> {
+  let summary = "constant";
+  let arguments = (ins F64ElementsAttr:$value);
+  let results = (outs F64Tensor);
+  
+  // Declare that we have custom implementations
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+  
+  // Declare custom builders
+  let builders = [
+    OpBuilder<(ins "DenseElementsAttr":$value)>,
+    OpBuilder<(ins "double":$value)>
+  ];
+}
+```
+
+**Purpose**: Declare what operations exist and their structure.
+
+#### **`Dialect.cpp`** - Implement the Operations
+
+```cpp
+//===----------------------------------------------------------------------===//
+// Custom Builder Implementation
+//===----------------------------------------------------------------------===//
+
+void ConstantOp::build(OpBuilder &builder, OperationState &state,
+                       double value) {
+  // Implementation of the builder declared in TableGen
+  auto dataType = RankedTensorType::get({}, builder.getF64Type());
+  auto dataAttribute = DenseElementsAttr::get(dataType, value);
+  ConstantOp::build(builder, state, dataType, dataAttribute);
+}
+
+//===----------------------------------------------------------------------===//
+// Custom Parser Implementation
+//===----------------------------------------------------------------------===//
+
+ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
+  // Implementation: how to read "toy.constant dense<...>"
+  DenseElementsAttr value;
+  if (parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseAttribute(value, "value", result.attributes))
+    return failure();
+  result.addTypes(value.getType());
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Custom Printer Implementation
+//===----------------------------------------------------------------------===//
+
+void ConstantOp::print(OpAsmPrinter &printer) {
+  // Implementation: how to write "toy.constant dense<...>"
+  printer << " ";
+  printer.printOptionalAttrDict((*this)->getAttrs(), {"value"});
+  printer << getValue();
+}
+
+//===----------------------------------------------------------------------===//
+// Verifier Implementation
+//===----------------------------------------------------------------------===//
+
+LogicalResult ConstantOp::verify() {
+  // Implementation: semantic checks
+  auto resultType = llvm::dyn_cast<RankedTensorType>(getResult().getType());
+  if (!resultType)
+    return emitOpError("result must be a ranked tensor");
+  
+  // More validation...
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// Dialect Registration
+//===----------------------------------------------------------------------===//
+
+void ToyDialect::initialize() {
+  addOperations<
+#define GET_OP_LIST
+#include "toy/Ops.cpp.inc"
+  >();
+}
+```
+
+**Purpose**: Implement the behavior declared in TableGen.
+
+#### **`MLIRGen.cpp`** - Use the Operations
+
+```cpp
+class MLIRGenImpl {
+  mlir::Value mlirGen(NumberExprAST &num) {
+    // USE the custom builder we implemented in Dialect.cpp
+    return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
+  }
+  
+  mlir::Value mlirGen(LiteralExprAST &lit) {
+    auto dataAttribute = DenseElementsAttr::get(dataType, data);
+    // USE the other custom builder
+    return builder.create<ConstantOp>(loc(lit.loc()), type, dataAttribute);
+  }
+  
+  mlir::Value mlirGen(BinaryExprAST &binop) {
+    Value lhs = mlirGen(*binop.getLHS());
+    Value rhs = mlirGen(*binop.getRHS());
+    
+    if (binop.getOp() == '+')
+      return builder.create<AddOp>(loc(binop.loc()), lhs, rhs);
+    
+    return builder.create<MulOp>(loc(binop.loc()), lhs, rhs);
+  }
+};
+```
+
+**Purpose**: Generate MLIR by creating operations from AST.
+
+### The Conceptual Division
+
+Think of it this way:
+
+| File | Role | Analogy |
+|------|------|---------|
+| **`Ops.td`** | **Declaration** | Interface (`.h` file) |
+| **`Dialect.cpp`** | **Implementation** | Implementation (`.cpp` file) |
+| **`MLIRGen.cpp`** | **Usage** | Client code that uses the API |
+
+### Why This Separation?
+
+This organization provides clear **separation of concerns**:
+
+1. **`Ops.td`**: High-level specification
+   - Easy to understand operation structure
+   - Generates boilerplate automatically
+   - Single source of truth
+
+2. **`Dialect.cpp`**: Operation semantics
+   - Custom behavior that can't be auto-generated
+   - Parsing, printing, verification
+   - Builder implementations with complex logic
+
+3. **`MLIRGen.cpp`**: Language frontend
+   - Converts your source language to MLIR
+   - Can be replaced for different source languages
+   - Independent of operation implementation details
+
+### Real-World Example: Arith Dialect
+
+Let's look at MLIR's built-in `arith` dialect structure:
+
+```
+mlir/lib/Dialect/Arith/
+├── IR/
+│   ├── ArithDialect.td         # Dialect definition
+│   ├── ArithOps.td             # Operation definitions (TableGen)
+│   ├── ArithOps.cpp            # Operation implementations
+│   └── ArithDialect.cpp        # Dialect registration
+│
+└── Transforms/
+    ├── ExpandOps.cpp           # Expand complex ops to simple ones
+    ├── IntRangeOptimizations.cpp
+    └── ...
+```
+
+Notice: No "Gen" file! Why? Because `arith` is a **target dialect**, not a source language. Operations are created by:
+- Other dialects lowering to arith
+- Transformation passes
+- Optimization passes
+
+### Scaling to Larger Projects
+
+As projects grow, you'll see expanded organization:
+
+```
+MyDialect/
+├── IR/                         # Core definitions
+│   ├── MyDialect.td           # Dialect definition
+│   ├── MyOps.td               # Operation definitions
+│   ├── MyTypes.td             # Custom types
+│   ├── MyAttributes.td        # Custom attributes
+│   ├── MyDialect.cpp          # Dialect implementation
+│   ├── MyOps.cpp              # Operation implementations
+│   └── MyTypes.cpp            # Type implementations
+│
+├── Transforms/                 # Optimization passes
+│   ├── Canonicalize.cpp       # Canonicalization patterns
+│   ├── MyPass.cpp             # Custom transformation passes
+│   └── Passes.td              # Pass definitions
+│
+├── Conversion/                 # Lowering to other dialects
+│   ├── MyToStd.cpp           # Lower to standard dialect
+│   ├── MyToLLVM.cpp          # Lower to LLVM dialect
+│   └── ConversionPatterns.td  # Lowering patterns
+│
+└── Frontend/                   # Language-specific (if applicable)
+    └── MyLangGen.cpp          # Source language → MyDialect
+```
+
+### Common Patterns You'll See
+
+#### Pattern 1: Dialect with Frontend (like Toy)
+```
+Ops.td → Dialect.cpp → MLIRGen.cpp → Your Compiler
+         (implement)   (use)
+```
+
+#### Pattern 2: Intermediate Dialect (like Affine, SCF)
+```
+Ops.td → Dialect.cpp → Lowering passes create these ops
+         (implement)   (from higher dialects)
+```
+
+#### Pattern 3: Target Dialect (like LLVM)
+```
+Ops.td → Dialect.cpp → ConversionPatterns.cpp
+         (implement)   (other dialects lower to this)
+```
+
+### Key Takeaways
+
+1. **`Ops.td`** declares operations (WHAT)
+2. **`Dialect.cpp`** implements operations (HOW they work)
+3. **`*Gen.cpp`** uses operations (creating MLIR from source)
+4. **This is the standard pattern across all MLIR projects**
+5. **Separation enables modularity**: change frontend without touching ops
+
+### Quiz: Where Does This Code Go?
+
+Let's test your understanding:
+
+**Question 1**: Where does this go?
+```cpp
+def AddOp : Toy_Op<"add"> {
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+}
+```
+**Answer**: `Ops.td` (TableGen declaration)
+
+**Question 2**: Where does this go?
+```cpp
+LogicalResult AddOp::verify() {
+  if (getLhs().getType() != getRhs().getType())
+    return emitOpError("operand types must match");
+  return success();
+}
+```
+**Answer**: `Dialect.cpp` (verification implementation)
+
+**Question 3**: Where does this go?
+```cpp
+Value result = builder.create<AddOp>(loc, lhs, rhs);
+```
+**Answer**: `MLIRGen.cpp` or any code that generates MLIR (usage)
+
+### Summary
+
+Understanding this file organization is crucial because:
+- ✅ You'll see this pattern in **every MLIR dialect**
+- ✅ It separates **declaration, implementation, and usage**
+- ✅ Makes code easier to navigate and understand
+- ✅ Enables **modularity**: swap frontends, add backends independently
+
+Now when you look at any MLIR codebase, you'll immediately understand the structure!
+
+---
+
+## 3.10 From AST to MLIR: MLIRGen
+
+Now that we understand file organization, let's see how to use operations to convert AST to MLIR.
 
 ### The MLIRGen Class
 
@@ -1287,7 +1613,7 @@ mlir::Value mlirGen(VariableExprAST &expr) {
 
 ---
 
-## 3.10 Complete Example: Toy to MLIR
+## 3.11 Complete Example: Toy to MLIR
 
 Let's trace through a complete transformation.
 
@@ -1372,7 +1698,7 @@ Unlike the AST, MLIR makes all types visible: `tensor<2x3xf64>`.
 
 ---
 
-## 3.11 Building and Running Chapter 2
+## 3.12 Building and Running Chapter 2
 
 Time to see this in action!
 
@@ -1452,7 +1778,7 @@ MLIR is:
 
 ---
 
-## 3.12 Why MLIR Is Better Than AST
+## 3.13 Why MLIR Is Better Than AST
 
 Let's revisit the problems from Chapter 2 and see how MLIR solves them.
 
